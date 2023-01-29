@@ -81,7 +81,7 @@ void TrafficLight::cycleThroughPhases()
                 this->_currentPhase = TrafficLightPhase::green;
             }
             else{
-                this->_currentPhase = TrafficLightPhase::green;
+                this->_currentPhase = TrafficLightPhase::red;
             }
             TrafficLightPhase msg = TrafficLight::getCurrentPhase();
             _msg_queue.send(std::move(msg));
