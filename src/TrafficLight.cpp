@@ -40,7 +40,12 @@ void TrafficLight::waitForGreen()
     // FP.5b : add the implementation of the method waitForGreen, in which an infinite while-loop 
     // runs and repeatedly calls the receive function on the message queue. 
     // Once it receives TrafficLightPhase::green, the method returns.
-
+    while(true) {
+        if(_msg_queue.receive() == TrafficLightPhase::green){
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
 }
 
 TrafficLightPhase TrafficLight::getCurrentPhase()
@@ -68,7 +73,7 @@ void TrafficLight::cycleThroughPhases()
     std::uniform_int_distribution<std::mt19937::result_type> dist_time_sec(4,6); // distribution in range [4, 6]
     auto t_start = std::chrono::high_resolution_clock::now();
     int target_time_interval = dist_time_sec(rng);
-    while (true){
+    while(true){
         // https://stackoverflow.com/questions/728068/how-to-calculate-a-time-difference-in-c        
         double elapsed_time_ms = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now()-t_start).count();
         if(elapsed_time_ms >= target_time_interval) {
@@ -78,6 +83,8 @@ void TrafficLight::cycleThroughPhases()
             else{
                 this->_currentPhase = TrafficLightPhase::green;
             }
+            TrafficLightPhase msg = TrafficLight::getCurrentPhase();
+            _msg_queue.send(std::move(msg));
             target_time_interval = dist_time_sec(rng);
         }
         t_start = std::chrono::high_resolution_clock::now();
