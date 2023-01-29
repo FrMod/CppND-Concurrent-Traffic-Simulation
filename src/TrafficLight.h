@@ -22,7 +22,7 @@ public:
     void send(T &&msg);
     T receive();
 private:
-    std::dequeue<T> _queue;
+    std::deque<T> _queue;
     std::mutex _mutex;
     std::condition_variable _cond; 
 };
@@ -32,6 +32,10 @@ private:
 // as well as „TrafficLightPhase getCurrentPhase()“, where TrafficLightPhase is an enum that 
 // can be either „red“ or „green“. Also, add the private method „void cycleThroughPhases()“. 
 // Furthermore, there shall be the private member _currentPhase which can take „red“ or „green“ as its value. 
+enum TrafficLightPhase{
+    red,
+    green
+};
 
 class TrafficLight : public TrafficObject
 {
@@ -53,15 +57,10 @@ private:
     // FP.4b : create a private member of type MessageQueue for messages of type TrafficLightPhase 
     // and use it within the infinite loop to push each new TrafficLightPhase into it by calling 
     // send in conjunction with move semantics.
-    std::shared_ptr<MessageQueue<TrafficLightPhase>> _msg_queue;
+    MessageQueue<TrafficLightPhase> _msg_queue;
     TrafficLightPhase _currentPhase;
     std::condition_variable _condition;
     std::mutex _mutex;
-};
-
-enum TrafficLightPhase{
-    red,
-    green
 };
 
 #endif
