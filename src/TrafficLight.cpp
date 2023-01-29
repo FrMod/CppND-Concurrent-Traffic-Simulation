@@ -1,5 +1,6 @@
 #include <iostream>
 #include <random>
+#include <future>
 #include "TrafficLight.h"
 
 /* Implementation of class "MessageQueue" */
@@ -14,7 +15,7 @@ T MessageQueue<T>::receive()
     std::unique_lock<std::mutex> uLock(_mutex);
     _cond.wait(uLock, [this] {return ! _queue.empty();});
     T msg = std::move(_queue.back());
-    _queue.pop_back();
+    _queue.clear();    // https://knowledge.udacity.com/questions/98313
     return msg;
 }
 
@@ -24,7 +25,7 @@ void MessageQueue<T>::send(T &&msg)
     // FP.4a : The method send should use the mechanisms std::lock_guard<std::mutex> 
     // as well as _condition.notify_one() to add a new message to the queue and afterwards send a notification.
     std::lock_guard<std::mutex> u_lock(_mutex);
-    _queue.push_back(std::move(msg));
+    _queue.emplace_back(std::move(msg));
     _cond.notify_one();
 }
 
@@ -41,10 +42,10 @@ void TrafficLight::waitForGreen()
     // runs and repeatedly calls the receive function on the message queue. 
     // Once it receives TrafficLightPhase::green, the method returns.
     while(true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
         if(_msg_queue.receive() == TrafficLightPhase::green){
             return;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }  
     }
 }
 
@@ -70,25 +71,24 @@ void TrafficLight::cycleThroughPhases()
     // https://stackoverflow.com/questions/13445688/how-to-generate-a-random-number-in-c 
     std::random_device dev;
     std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist_time_sec(4,6); // distribution in range [4, 6]
+    std::uniform_int_distribution<std::mt19937::result_type> dist_time_msec(4000,6000); 
     auto t_start = std::chrono::high_resolution_clock::now();
-    int target_time_interval = dist_time_sec(rng);
+    int target_time_interval = dist_time_msec(rng);
     while(true){
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
         // https://stackoverflow.com/questions/728068/how-to-calculate-a-time-difference-in-c        
         double elapsed_time_ms = std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now()-t_start).count();
         if(elapsed_time_ms >= target_time_interval) {
-            if(this->getCurrentPhase() == TrafficLightPhase::red){
-                this->_currentPhase = TrafficLightPhase::green;
+            if(getCurrentPhase() == TrafficLightPhase::red){
+                _currentPhase = TrafficLightPhase::green;
             }
             else{
-                this->_currentPhase = TrafficLightPhase::red;
+                _currentPhase = TrafficLightPhase::red;
             }
-            TrafficLightPhase msg = TrafficLight::getCurrentPhase();
-            _msg_queue.send(std::move(msg));
-            target_time_interval = dist_time_sec(rng);
+            _msg_queue.send(std::move(getCurrentPhase()));
+            target_time_interval = dist_time_msec(rng);
+            t_start = std::chrono::high_resolution_clock::now();
         }
-        t_start = std::chrono::high_resolution_clock::now();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
    
 }
